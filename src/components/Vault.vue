@@ -35,7 +35,9 @@
 
 <script>
 import firebase from 'firebase'
+import 'firebase/firestore'
 require('firebase/firestore')
+
 export default {
   name: 'vault',
   data () {
@@ -47,14 +49,19 @@ export default {
       editableItemIndex: -1
     }
   },
+  
   mounted () {
     const db = firebase.firestore()
-    // const settings = {/* your settings... */ timestampsInSnapshots: true};
-    db.settings(settings);
-    db.collection('passwords').doc('list').get().then(response => {
-      console.info('DB respnse', response)
-      this.passwords = response
-    }).catch(console.warn)
+    const dbPasswords = db.collection('passwords')
+
+    // const settings = {/* your settings... */ timestampsInSnapshots: false}
+    // db.settings(settings) //говорит что надо убрать это
+
+    // dbPasswords.doc('password').get().then(response => {
+    //   console.info('DB respnse', response)
+    //   this.passwords = response
+    // }).catch(console.warn)
+    
   },
   methods: {
     logout: function () {
@@ -62,51 +69,48 @@ export default {
         this.$router.replace('login')
       })
     },
-    cancelEdit () {
+    cancelEdit() {
       this.editableItem = null
       this.editableItemIndex = -1
     },
-    saveItem () {
-      db.collection('passwords').doc('list').set({
+    saveItem() {
+      dbPasswords.doc('password').set({
         text: this.newPassword,
         visible: false
       }).then(response => {
-      console.info('DB respnse', response)
-      this.passwords.push({
-        text: this.newPassword,
-        id: response.id, //
-        visible: false
-      })
-    }).catch(console.warn)
-      
+        console.info('DB response', response)
+        this.passwords.push({
+          text: this.newPassword,
+          // id: response.id, //
+          visible: false
+        })
+      }).catch(console.warn)
       this.newPassword = ''
+      console.log('')
     },
-    toggleItem (password) {
+    toggleItem(password) {
       password.visible = !password.visible
     },
-    editItem (password) {
+    editItem(password) {
       this.editableItem = password
-      this.editableItemIndex = this.passwords.findIndex(p => p.text == password.text)
+      this.editableItemIndex = this.passwords.findIndex(p => p.text === password.text)
     },
-    updateItem () {
+    updateItem() {
       this.passwords[this.editableItemIndex] = this.editableItem
       // firestore updates
       this.cancelEdit()
     },
-    deleteItem (password) {
-      const index = this.passwords.findIndex(p => p.text == password.text)
-      if(index == -1) { // Не делать ничего если элемент не найден(уже удален)
+    deleteItem(password) {
+      const index = this.passwords.findIndex(p => p.text === password.text)
+      if (index === -1) { // Не делать ничего если элемент не найден(уже удален)
         return
       }
-      const answer = confirm("Delete?")
-      if(answer) {
+      const answer = confirm('Delete?')
+      if (answer) {
         // firestore delete
         this.passwords.splice(index, 1)
       }
-      
-    },
-
-    
+    }
   }
 }
 </script>

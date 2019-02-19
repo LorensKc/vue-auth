@@ -7,8 +7,8 @@ import firebase from 'firebase'
 
 Vue.config.productionTip = true
 
-let app
-let config = {
+let app;
+const config = {
   apiKey: 'AIzaSyBxEGg-3cWbnbiKiG4hvq3dqR5B9xmOlUs',
   authDomain: 'pass-manager-2018.firebaseapp.com',
   databaseURL: 'https://pass-manager-2018.firebaseio.com/',
@@ -29,10 +29,4 @@ firebase.auth().onAuthStateChanged(function (user) {
     })
   }
 })
-/* eslint-disable no-new */
-// new Vue({
-//   el: '#app',
-//   router,
-//   components: { App },
-//   template: '<App/>'
-// })
+
