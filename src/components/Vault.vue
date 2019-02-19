@@ -64,7 +64,7 @@ export default {
     
   },
   methods: {
-    logout: function () {
+    logout() {
       firebase.auth().signOut().then(() => {
         this.$router.replace('login')
       })
@@ -74,6 +74,9 @@ export default {
       this.editableItemIndex = -1
     },
     saveItem() {
+      let db = firebase.firestore()
+      let dbPasswords = db.collection('passwords')
+
       dbPasswords.doc('password').set({
         text: this.newPassword,
         visible: false
@@ -85,8 +88,9 @@ export default {
           visible: false
         })
       }).catch(console.warn)
-      this.newPassword = ''
-      console.log('')
+      // this.newPassword = ''
+      console.log('code is work');
+      
     },
     toggleItem(password) {
       password.visible = !password.visible
