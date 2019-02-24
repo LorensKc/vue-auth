@@ -1,7 +1,7 @@
 <template>
   <div class="vault">
     <h1>{{ message }}</h1>
-    <label v-if="!editableItem">Add new password
+    <label v-if="open">Add new password
       <input type="text" v-model="newPassword">
       <input type="button" value="Save" @click="saveItem">
     </label>
@@ -16,15 +16,15 @@
         <th>Actions</th>
         <!-- <td><input type="password" v-model="password"></td> -->
       </tr>
-      <tr v-for="password in passwords" :key="password">
+      <tr v-for="(password, i) in passwords" :key="password.id">
         <td>
-          <button @click="toggleItem(password)">Toggle</button>
+          <button @click="password.visible = !password.visible">Toggle</button>
           <span v-if="password.visible">{{password.text}}</span>
-          <span v-else>********</span>
+          <span v-else>***</span>
         </td>
         <td>
-          <button @click="editItem(password)">Edit</button>
-          <button @click="deleteItem(password)">Delete</button>
+          <button @click="editItem(password, i)">Edit</button>
+          <button @click="deleteItem(password, i)">Delete</button>
         </td>
       </tr>
     </table>
@@ -36,7 +36,6 @@
 <script>
 import firebase from 'firebase'
 import 'firebase/firestore'
-require('firebase/firestore')
 
 export default {
   name: 'vault',
@@ -45,25 +44,40 @@ export default {
       message: 'Welcome to Password Manager',
       passwords: [],
       newPassword: '',
-      editableItem: null,
-      editableItemIndex: -1
+      editableItem: '',
+      editableItemIndex: -1,
+      open: true,
+      showItem: false,
+      db: null
     }
   },
   
   mounted () {
-    const db = firebase.firestore()
-    const dbPasswords = db.collection('passwords')
-
-    // const settings = {/* your settings... */ timestampsInSnapshots: false}
-    // db.settings(settings) //говорит что надо убрать это
-
-    // dbPasswords.doc('password').get().then(response => {
-    //   console.info('DB respnse', response)
-    //   this.passwords = response
-    // }).catch(console.warn)
-    
+    this.db = firebase.database()
+    this.loadItems()
+  },
+  computed: {
+    currentUser () {
+      var auth = firebase.auth()
+      return auth.currentUser.uid
+      // return
+    },
+    passwordRef () {
+      return this.db.ref('passwords/user-' + this.currentUser)
+    }
   },
   methods: {
+    loadItems() {
+     this.passwordRef.once('value').then(response => {
+       const result = response.val()
+       this.passwords = Object.keys(result).map(id => {
+          return {
+            ...result[id],
+            id
+          }
+       })
+      }).catch(console.warn)
+    },
     logout() {
       firebase.auth().signOut().then(() => {
         this.$router.replace('login')
@@ -74,37 +88,35 @@ export default {
       this.editableItemIndex = -1
     },
     saveItem() {
-      let db = firebase.firestore()
-      let dbPasswords = db.collection('passwords')
-
-      dbPasswords.doc('password').set({
+      this.passwordRef.push({
         text: this.newPassword,
         visible: false
       }).then(response => {
-        console.info('DB response', response)
-        this.passwords.push({
-          text: this.newPassword,
-          // id: response.id, //
-          visible: false
-        })
+        this.loadItems()
       }).catch(console.warn)
-      // this.newPassword = ''
-      console.log('code is work');
-      
+      this.newPassword = ''
     },
-    toggleItem(password) {
-      password.visible = !password.visible
-    },
-    editItem(password) {
-      this.editableItem = password
-      this.editableItemIndex = this.passwords.findIndex(p => p.text === password.text)
+    editItem(password, i) {
+      this.open = false;
+      this.editableItem = password;
+      this.editableItemIndex = i;
     },
     updateItem() {
+      
       this.passwords[this.editableItemIndex] = this.editableItem
       // firestore updates
-      this.cancelEdit()
+      var updates = {};
+      updates[this.editableItem.id] = {
+        text: this.editableItem.text,
+        visible: false
+      };
+      this.passwordRef.update(updates);
+
+      this.open = true;
+      this.newPassword = '';
+
     },
-    deleteItem(password) {
+    deleteItem(password, i) {
       const index = this.passwords.findIndex(p => p.text === password.text)
       if (index === -1) { // Не делать ничего если элемент не найден(уже удален)
         return
@@ -112,6 +124,7 @@ export default {
       const answer = confirm('Delete?')
       if (answer) {
         // firestore delete
+         this.db.ref('passwords/user-' + this.currentUser + '/' + password.id).remove()
         this.passwords.splice(index, 1)
       }
     }
