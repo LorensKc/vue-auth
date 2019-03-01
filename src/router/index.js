@@ -5,6 +5,7 @@ import Vault from '@/components/Vault'
 import Login from '@/components/Login'
 import SignUp from '@/components/SignUp'
 import firebase from 'firebase'
+import "vue-material-design-icons/styles.css"
 
 Vue.use(Router)
 
